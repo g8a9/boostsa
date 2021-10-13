@@ -175,10 +175,11 @@ class bcolors:
 ###############################################################################
 
 class Bootstrap:
-    def __init__(self, save_results=True, save_outcomes=True, dir_out=''):
+    def __init__(self, save_results=True, save_outcomes=True, dir_out='', metrics_average="macro"):
         self.dirout = dir_out + '/' if (dir_out != '') and (not re.search('/$', dir_out)) else dir_out
         self.savetsv = save_results
         self.savejson = save_outcomes
+        self.metrics_average = metrics_average
         self.data = defaultdict(lambda: {'exp_idxs': list(),
                                          'preds':    list(),
                                          'targs':    list(),
@@ -245,16 +246,16 @@ class Bootstrap:
             return object
         
     @staticmethod
-    def metrics(targs, h0_preds, h1_preds, h0_name='h0', h1_name='h1', verbose=False):
+    def metrics(targs, h0_preds, h1_preds, h0_name='h0', h1_name='h1', verbose=False, metrics_average="macro"):
         rounding_value = 2
         h0_acc  = round(accuracy_score(targs, h0_preds) * 100, rounding_value)
-        h0_f1   = round(f1_score(targs, h0_preds, average='macro') * 100, rounding_value)
-        h0_prec = round(precision_score(targs, h0_preds, average='macro') * 100, rounding_value)
-        h0_rec  = round(recall_score(targs, h0_preds, average='macro') * 100, rounding_value)
+        h0_f1   = round(f1_score(targs, h0_preds, average=metrics_average) * 100, rounding_value)
+        h0_prec = round(precision_score(targs, h0_preds, average=metrics_average) * 100, rounding_value)
+        h0_rec  = round(recall_score(targs, h0_preds, average=metrics_average) * 100, rounding_value)
         h1_acc  = round(accuracy_score(targs, h1_preds) * 100, rounding_value)
-        h1_f1   = round(f1_score(targs, h1_preds, average='macro') * 100, rounding_value)
-        h1_prec = round(precision_score(targs, h1_preds, average='macro') * 100, rounding_value)
-        h1_rec  = round(recall_score(targs, h1_preds, average='macro') * 100, rounding_value)
+        h1_f1   = round(f1_score(targs, h1_preds, average=metrics_average) * 100, rounding_value)
+        h1_prec = round(precision_score(targs, h1_preds, average=metrics_average) * 100, rounding_value)
+        h1_rec  = round(recall_score(targs, h1_preds, average=metrics_average) * 100, rounding_value)
         # h0_conf_matrix = confusion_matrix(targs, h0_preds)
         # h1_conf_matrix = confusion_matrix(targs, h1_preds)
         diff_acc  = round(h1_acc - h0_acc, rounding_value)
@@ -292,7 +293,7 @@ class Bootstrap:
         targs    = np.array(targs)
         h0_preds = np.array(h0_preds)
         h1_preds = np.array(h1_preds)
-        df_tot = self.metrics(targs, h0_preds, h1_preds, h0_name=h0_name, h1_name=h1_name, verbose=verbose)
+        df_tot = self.metrics(targs, h0_preds, h1_preds, h0_name=h0_name, h1_name=h1_name, verbose=verbose, metrics_average=self.metrics_average)
         diff_acc  = df_tot.diff_acc[-1]
         diff_f1   = df_tot.diff_f1[-1]
         diff_prec = df_tot.diff_prec[-1]
@@ -306,7 +307,7 @@ class Bootstrap:
             sample_h0_preds = h0_preds[i_sample]
             sample_h1_preds = h1_preds[i_sample]
             sample_targs    = targs[i_sample]
-            df_sample       = self.metrics(sample_targs, sample_h0_preds, sample_h1_preds)
+            df_sample       = self.metrics(sample_targs, sample_h0_preds, sample_h1_preds, metrics_average=self.metrics_average)
             if df_sample.diff_acc[-1]   > 2 * diff_acc:  twice_diff_acc  += 1
             if df_sample.diff_f1[-1]    > 2 * diff_f1:   twice_diff_f1   += 1
             if df_sample.diff_prec[-1]  > 2 * diff_prec: twice_diff_prec += 1
@@ -342,7 +343,7 @@ class Bootstrap:
             h0_preds_all, h0_targs_all, h0_idxs_all = list(), list(), list()
             for exp_idx, preds, targs, idxs in zip(self.data[h0_cond]['exp_idxs'], self.data[h0_cond]['preds'], self.data[h0_cond]['targs'], self.data[h0_cond]['idxs']):
                 acc = round(accuracy_score(targs, preds) * 100, 2)
-                f1  = round(f1_score(targs, preds, average='macro') * 100, 2)
+                f1  = round(f1_score(targs, preds, average=self.metrics_average) * 100, 2)
                 h0_preds_all.extend(preds)
                 h0_targs_all.extend(targs)
                 h0_idxs_all.extend(idxs)
@@ -355,7 +356,7 @@ class Bootstrap:
                                                        self.data[h0_cond]['h1'][h1_cond]['targs'],
                                                        self.data[h0_cond]['h1'][h1_cond]['idxs']):
                     acc = round(accuracy_score(targs, preds) * 100, 2)
-                    f1  = round(f1_score(targs, preds, average='macro') * 100, 2)
+                    f1  = round(f1_score(targs, preds, average=self.metrics_average) * 100, 2)
                     h1_preds_all.extend(preds)
                     h1_targs_all.extend(targs)
                     h1_idxs_all.extend(idxs)
